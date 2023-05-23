@@ -3,7 +3,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 // dotenv
 require("dotenv").config();
@@ -15,10 +15,27 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("🤩Yay! Marvel Toyverse Working...");
 });
+// gen jwt
 app.post("/gentoken", (req, res) => {
   const userInfo = req.body;
-  const token = jwt.sign()
+  const token = jwt.sign(userInfo, process.env.JWT_SECRETKEY);
+  res.json({ token });
 });
+// verify jwt
+const validateUser = (req, res, next) => {
+  const authToken = req.headers.authtoken;
+  if (!authToken) {
+    return res.status(401).send({ error: "Invalid credentials" });
+  }
+  try {
+    let token = authToken.split(" ")[1];
+    const decodedData = jwt.verify(token, process.env.JWT_SECRETKEY);
+    req.decodedUser = decodedData;
+    next();
+  } catch {
+    return res.status(401).send({ error: "Invalid credentials" });
+  }
+};
 // crud oparations
 const uri = process.env.MONGODB_URI;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -35,6 +52,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const database = client.db("marvel_toy_verse");
+    // get methods
     app.get("/toys", async (req, res) => {
       const collection = database.collection("toys");
       let cursor = await collection.find().sort({ price: 1 }).toArray();
@@ -51,6 +69,7 @@ async function run() {
         });
       }
     });
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
