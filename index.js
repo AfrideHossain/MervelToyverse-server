@@ -86,6 +86,26 @@ async function run() {
         });
       }
     });
+    app.get("/mytoys", validateUser, async (req, res) => {
+      let user = req.decodedUser;
+      const collection = database.collection("toys");
+      let cursor = await collection
+        .find({ sellerEmail: user.email })
+        .sort({ price: 1 })
+        .toArray();
+      if (cursor.length) {
+        res.json({
+          success: true,
+          msg: "Toys found",
+          toys: cursor,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Toys not found",
+        });
+      }
+    });
     
 
     // Send a ping to confirm a successful connection
