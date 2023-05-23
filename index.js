@@ -106,6 +106,24 @@ async function run() {
         });
       }
     });
+    // delete method
+    app.delete("/toy/:id", async (req, res) => {
+      let id = req.params.id;
+      const collection = database.collection("toys");
+      let result = await collection.deleteOne({ _id: new ObjectId(id) });
+      if (result.deletedCount > 0) {
+        res.json({
+          success: true,
+          msg: "Toy deleted",
+          result: result,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Toy not deleted",
+        });
+      }
+    });
     
 
     // Send a ping to confirm a successful connection
