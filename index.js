@@ -124,7 +124,34 @@ async function run() {
         });
       }
     });
-    
+    // patch method
+    app.patch("/toy/:id", async (req, res) => {
+      let id = req.params.id;
+      const collection = database.collection("toys");
+      let result = await collection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            price: parseFloat(req.body.price),
+            quantity: parseInt(req.body.quantity),
+            description: req.body.description,
+          },
+        }
+      );
+      console.log(result);
+      if (result.modifiedCount > 0) {
+        res.json({
+          success: true,
+          msg: "Toy updated",
+          result: result,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Toy not found",
+        });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
