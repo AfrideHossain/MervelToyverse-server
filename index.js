@@ -69,6 +69,23 @@ async function run() {
         });
       }
     });
+    app.get("/toy/:id", async (req, res) => {
+      let id = req.params.id;
+      const collection = database.collection("toys");
+      let result = await collection.findOne({ _id: new ObjectId(id) });
+      if (result) {
+        res.json({
+          success: true,
+          msg: "Toy found",
+          toy: result,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Toy not found",
+        });
+      }
+    });
     
 
     // Send a ping to confirm a successful connection
