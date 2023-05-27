@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -9,7 +9,13 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 // cors and json used here
-app.use(cors());
+const corsConfig = {
+  origin: "*",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+};
+app.use(cors(corsConfig));
+app.options("", cors(corsConfig));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -37,7 +43,8 @@ const validateUser = (req, res, next) => {
   }
 };
 // crud oparations
-const uri = process.env.MONGODB_URI;
+// const uri = process.env.MONGODB_URI;
+const uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.ur8iook.mongodb.net/?retryWrites=true&w=majority`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
@@ -50,12 +57,22 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    client.connect();
     const database = client.db("marvel_toy_verse");
     // get methods
     app.get("/toys", async (req, res) => {
+      let page = parseInt(req.query.page);
+      let limit = parseInt(req.query.limit);
+
+      let skippedItems = page * limit;
+
       const collection = database.collection("toys");
-      let cursor = await collection.find().sort({ price: 1 }).toArray();
+      let cursor = await collection
+        .find()
+        .skip(skippedItems)
+        .limit(limit)
+        .sort({ price: 1 })
+        .toArray();
       if (cursor.length) {
         res.json({
           success: true,
@@ -106,6 +123,22 @@ async function run() {
         });
       }
     });
+    app.get("/opinion", async (req, res) => {
+      const collection = database.collection("opinions");
+      let cursor = await collection.find().toArray();
+      if (cursor.length) {
+        res.json({
+          success: true,
+          msg: "Opinions found",
+          opinions: cursor,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Opinions not found",
+        });
+      }
+    });
     // delete method
     app.delete("/toy/:id", async (req, res) => {
       let id = req.params.id;
@@ -149,6 +182,47 @@ async function run() {
         res.json({
           success: false,
           msg: "Toy not found",
+        });
+      }
+    });
+    // post method
+    app.post("/addtoy", async (req, res) => {
+      let reqBody = req.body;
+      const collection = database.collection("toys");
+      let result = await collection.insertOne(reqBody);
+      if (result.insertedId) {
+        res.json({
+          success: true,
+          msg: "Toy updated",
+          result: result,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "Toy not found",
+        });
+      }
+    });
+    app.post("/opinion", async (req, res) => {
+      let reqBody = req.body;
+      let docBody = {
+        username: reqBody.name,
+        email: reqBody.email,
+        photo: reqBody.photo,
+        opinion: reqBody.opinion,
+      };
+      const collection = database.collection("opinions");
+      let result = await collection.insertOne(docBody);
+      if (result.insertedId) {
+        res.json({
+          success: true,
+          msg: "Opinion Added",
+          result: result,
+        });
+      } else {
+        res.json({
+          success: false,
+          msg: "We can't add your opinion",
         });
       }
     });
